@@ -1,4 +1,5 @@
 # Details of openshift installation
+OCP installation is running on shadow.lab infrastructure and shutdown when not in use.  Contact phayes@redhat.com to spin up server.
 
 Ip address: 10.14.91.247
 
