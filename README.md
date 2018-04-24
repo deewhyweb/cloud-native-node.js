@@ -10,3 +10,5 @@ The proposed approach is to take the existing coolstore (https://github.com/jbos
 This project will make use of existing NPM modules where possible e.g. nodeshift, and third party tools e.g. Istio for microservice management.  The output from this project will be a comprehensive example of cloud native node.js application development.
 
 * [Openshift installation](/openshift)
+* [Coolstore demo installation](/coolstoredemo)
+* [Istio installation](/istio)
