@@ -27,3 +27,22 @@ istio-mixer     172.30.158.157   <none>                          9091/TCP,15004/
 istio-pilot     172.30.107.192   <none>                          15003/TCP,15005/TCP,15007/TCP,15010/TCP,8080/TCP,9093/TCP,443/TCP   6m
 ```
 
+# Install Istio Addons
+```
+oc adm policy add-scc-to-user anyuid -z prometheus -n istio-system
+oc adm policy add-scc-to-user privileged -z prometheus -n istio-system
+oc adm policy add-scc-to-user privileged -z grafana -n istio-system
+oc adm policy add-scc-to-user anyuid -z grafana -n istio-system
+oc create -f install/kubernetes/addons/prometheus.yaml
+oc create -f install/kubernetes/addons/grafana.yaml
+oc create -f install/kubernetes/addons/servicegraph.yaml
+oc create -f install/kubernetes/addons/zipkin.yaml
+oc expose svc grafana
+oc expose svc servicegraph
+oc expose svc zipkin
+SERVICEGRAPH=$(oc get route servicegraph -o jsonpath='{.spec.host}{"\n"}')/dotviz
+GRAFANA=$(oc get route grafana -o jsonpath='{.spec.host}{"\n"}')
+ZIPKIN=$(oc get route zipkin -o jsonpath='{.spec.host}{"\n"}')
+```
+
+oc get dc -o yaml | istioctl kube-inject -f - | oc apply -f -
