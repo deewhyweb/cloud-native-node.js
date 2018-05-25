@@ -1,3 +1,8 @@
+# Prerequisites
+Openshift 3.9 (Kubernetes 1.9)
+Openshift cli logged in as cluster admin role
+
+# Install Istio
 ```
 oc adm policy add-scc-to-user anyuid -z istio-ingress-service-account -n istio-system
 
@@ -11,6 +16,11 @@ cd istio-0.7.1/
 
 oc create -f install/kubernetes/istio.yaml
 
+```
+
+## Verify installation
+
+```
 oc project istio-system
 
 oc get pods
@@ -35,14 +45,83 @@ oc adm policy add-scc-to-user privileged -z grafana -n istio-system
 oc adm policy add-scc-to-user anyuid -z grafana -n istio-system
 oc create -f install/kubernetes/addons/prometheus.yaml
 oc create -f install/kubernetes/addons/grafana.yaml
-oc create -f install/kubernetes/addons/servicegraph.yaml
-oc create -f install/kubernetes/addons/zipkin.yaml
+oc create -f install/kubernetes/addons/zipkin.yaml -->
 oc expose svc grafana
-oc expose svc servicegraph
-oc expose svc zipkin
-SERVICEGRAPH=$(oc get route servicegraph -o jsonpath='{.spec.host}{"\n"}')/dotviz
-GRAFANA=$(oc get route grafana -o jsonpath='{.spec.host}{"\n"}')
-ZIPKIN=$(oc get route zipkin -o jsonpath='{.spec.host}{"\n"}')
 ```
 
-oc get dc -o yaml | istioctl kube-inject -f - | oc apply -f -
+## Install jaeger
+```
+kubectl apply -n istio-system -f https://raw.githubusercontent.com/jaegertracing/jaeger-kubernetes/master/all-in-one/jaeger-all-in-one-template.yml
+
+oc expose svc jaeger-query
+
+```
+
+# Install Istio Automatic sidecar injector
+
+To install automatic sidecar injection you have to enable the kube certificate server api through some changes to your master config:
+So in master-config.yaml add the following pluginConfig under admissionConfig:
+
+```
+admissionConfig:
+  pluginConfig:
+    MutatingAdmissionWebhook:
+      configuration:
+        apiVersion: v1
+        disable: false
+        kind: DefaultAdmissionConfig
+
+```
+and under kubernetesMasterConfig add the following controllerArguments:
+
+```
+kubernetesMasterConfig:
+  controllerArguments:
+    cluster-signing-cert-file: [ ca.crt ]
+    cluster-signing-key-file: [ ca.key ]
+```
+
+Once these changes are made, restart OCP with the command:
+
+```
+systemctl restart atomic-openshift-master-*
+```
+
+## Install sidecar injector
+```
+oc adm policy add-scc-to-user anyuid -z istio-sidecar-injector-service-account -n istio-system
+
+./install/kubernetes/webhook-create-signed-cert.sh --service istio-sidecar-injector --namespace istio-system --secret sidecar-injector-cer
+
+kubectl apply -f install/kubernetes/istio-sidecar-injector-configmap-release.yaml
+
+cat install/kubernetes/istio-sidecar-injector.yaml | \
+     ./install/kubernetes/webhook-patch-ca-bundle.sh > \
+     install/kubernetes/istio-sidecar-injector-with-ca-bundle.yaml
+
+kubectl apply -f install/kubernetes/istio-sidecar-injector-with-ca-bundle.yaml
+
+```
+## Verify sidecar injector is running
+```
+oc get pods --namespace=istio-system | grep sidecar
+istio-sidecar-injector-5b8c78fd6-qsqqc   1/1       Running   0          1h
+
+```
+## Enable side car injection on per project basis
+
+```
+kubectl label namespace <<project name>> istio-injection=enabled
+```
+Any deployments to this namespace will now automatically have the istio side car injected.
+
+To verfiy this, take a look in the Openshift console at your application.  In this case it's the default Node.js sample app.
+The Pod should show two containers ready:
+
+![containers ready](/assets/containers.png)
+
+Viewing the Pod should show the Istio sidecar container listed:
+
+![pod view ready](/assets/podview.png)
+
+
