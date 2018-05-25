@@ -51,7 +51,7 @@ oc expose svc grafana
 
 ## Install jaeger
 ```
-kubectl apply -n istio-system -f https://raw.githubusercontent.com/jaegertracing/jaeger-kubernetes/master/all-in-one/jaeger-all-in-one-template.yml
+oc create -n istio-system -f https://raw.githubusercontent.com/jaegertracing/jaeger-kubernetes/master/all-in-one/jaeger-all-in-one-template.yml
 
 oc expose svc jaeger-query
 
@@ -93,13 +93,13 @@ oc adm policy add-scc-to-user anyuid -z istio-sidecar-injector-service-account -
 
 ./install/kubernetes/webhook-create-signed-cert.sh --service istio-sidecar-injector --namespace istio-system --secret sidecar-injector-cer
 
-kubectl apply -f install/kubernetes/istio-sidecar-injector-configmap-release.yaml
+oc create -f install/kubernetes/istio-sidecar-injector-configmap-release.yaml
 
 cat install/kubernetes/istio-sidecar-injector.yaml | \
      ./install/kubernetes/webhook-patch-ca-bundle.sh > \
      install/kubernetes/istio-sidecar-injector-with-ca-bundle.yaml
 
-kubectl apply -f install/kubernetes/istio-sidecar-injector-with-ca-bundle.yaml
+oc create -f install/kubernetes/istio-sidecar-injector-with-ca-bundle.yaml
 
 ```
 ## Verify sidecar injector is running
@@ -111,7 +111,7 @@ istio-sidecar-injector-5b8c78fd6-qsqqc   1/1       Running   0          1h
 ## Enable side car injection on per project basis
 
 ```
-kubectl label namespace <<project name>> istio-injection=enabled
+oc label namespace <<project name>> istio-injection=enabled
 ```
 Any deployments to this namespace will now automatically have the istio side car injected.
 
